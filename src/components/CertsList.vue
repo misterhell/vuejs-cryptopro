@@ -1,10 +1,14 @@
 <template>
   <div>
-
-    <div v-for="c in certs" :key="c.thumb">
-        {{ certs }}
-    </div>
-
+    <h1>Список: </h1>
+    <ul>
+      <li v-for="c in certs" :key="c.thumb">
+          {{ c.label }}
+      </li>
+      <li v-if="certs && certs.length == 0">
+        Список пуст
+      </li>
+    </ul>
   </div>
 </template>
 
@@ -19,10 +23,9 @@ export default {
   },
 
   mounted() {
-    getCertsList()
+     getCertsList()
       .then(certs => {
         this.certs = certs;
-        console.log(certs);
       })
       .catch(e => alert(e));
   }

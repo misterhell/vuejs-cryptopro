@@ -1,26 +1,29 @@
 <template>
   <div>
+    <h1>Проверка плагина</h1>
     <button @click="check">Проверить</button>
-    check
+    <div>{{ loaded ? 'загружен' : 'не загружен'}}</div>
   </div>
 </template>
 
 <script>
-
 import { checkPlugin } from "../lib/cryptopro-cades-api-lib";
 
 export default {
   data() {
     return {
-      // err:
+      loaded: false
     };
   },
 
   methods: {
     check() {
-        checkPlugin()
-          .then(() => alert('работает'))
-          .catch(e => alert(e))
+      checkPlugin()
+        .then(() => {
+          this.loaded = true
+          alert("работает")
+        })
+        .catch(e => alert(e));
     }
   }
 };

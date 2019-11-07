@@ -1,8 +1,7 @@
-// import Cryptopro from './index.js'
-// import './cadesplugin_api'
 import cryptoConstants from './constants'
 import Certificate from './certificate'
 import cryptoCommon from './common'
+import { Promise } from 'q';
 
 
 
@@ -23,7 +22,7 @@ const CheckFileApi = () => new Promise((resolve, reject) => {
 })
 
 
-const ReadFile = (file) => new Promise((resolve, reject) => {
+const ReadFile = file => new Promise((resolve, reject) => {
     CheckFileApi()
         .then(() => {
             let oFReader = new FileReader();
@@ -44,26 +43,10 @@ export const checkPlugin = async () => {
     return window.cadesplugin
 }
 
+
 export const importPlugin = () => {
 
-    return import('./cadesplugin_api')
-
-    // асинхронная загрузка
-    // return import('./cadesplugin_api')
-    //     .then(() => {
-    //         const loaded = () => {
-    //             console.log('plugin loaded');
-    //             return true
-    //         }
-
-    //         const onError = () => {
-    //             e => console.log(e)
-    //             return false
-    //         }
-
-    //         return window.cadesplugin.then(loaded, onError)
-    //     })
-    //     .catch(e => console.log(e))
+    return import('../vendor/cadesplugin_api')
 }
 
 /**
@@ -237,17 +220,6 @@ export const SignStringHash = (keyThumb, dataToSign) => {
 }
 
 
-/**
- *
- * @param thumb
- * @param dataInBase64
- * @param signType bool - false - connected
- * @returns {*|Promise|Promise<unknown>|Promise}
- * @constructor
- */
-export const SignData = (thumb, dataInBase64, signType) => Cryptopro.call('signData', thumb, dataInBase64, signType)
-
-
 export const SignFile = (keyThumb, file) => {
     return new Promise(function (resolve, reject) {
         ReadFile(file)
@@ -266,7 +238,7 @@ export const SignFile = (keyThumb, file) => {
 
                         let Count = yield oCertificates.Count;
                         if (Count == 0) {
-                            throw ('Certificate not found: ' + args[0]);
+                            throw (`Certificate not found:  ${args[0]}`);
                         }
                         // устустановка сертификата
                         let oCertificate = yield oCertificates.Item(1);
@@ -308,11 +280,11 @@ export const SignFile = (keyThumb, file) => {
                             return false;
                         }
 
-                        args[2](sSignedMessage);
+                        args[1](sSignedMessage);
                     } catch (err) {
-                        args[3](`Failed to create signature. Error:  ${cadesplugin.getLastError(err)}`);
+                        args[2](`Failed to create signature. Error:  ${cadesplugin.getLastError(err)}`);
                     }
-                }, keyThumb, file, resolve, reject);
+                }, keyThumb, resolve, reject);
             })
             .catch(err => reject(err))
     })
@@ -320,8 +292,111 @@ export const SignFile = (keyThumb, file) => {
 }
 
 
+export const signBase64 = (keyThumb, Base64data) => {
+    const fn = function* (args) {
+        const keyThumb = args[0],
+            base64data = args[1],
+            resolve = args[2],
+            reject = args[3]
+
+        try {
+            console.log(keyThumb);
+            // открытие хранилища
+            let oStore = yield cadesplugin.CreateObjectAsync('CAdESCOM.Store');
+            yield oStore.Open(cadesplugin.CAPICOM_CURRENT_USER_STORE, cadesplugin.CAPICOM_MY_STORE,
+                cadesplugin.CAPICOM_STORE_OPEN_MAXIMUM_ALLOWED);
+
+            // поиск сертификата по его хешу (thumbprint)
+            let CertificatesObj = yield oStore.Certificates;
+            let oCertificates = yield CertificatesObj.Find(
+                cadesplugin.CAPICOM_CERTIFICATE_FIND_SHA1_HASH, keyThumb
+            );
+
+            let Count = yield oCertificates.Count;
+            if (Count == 0) {
+                throw (`Сертификат не найден:  ${args[0]}`);
+            }
+            // устустановка сертификата
+            let oCertificate = yield oCertificates.Item(1);
+            let oSigner = yield cadesplugin.CreateObjectAsync('CAdESCOM.CPSigner');
+            yield oSigner.propset_Certificate(oCertificate);
+
+            // вычисление хеша
+            let oHashedData = yield cadesplugin.CreateObjectAsync('CAdESCOM.HashedData');
+
+            yield oHashedData.propset_Algorithm(cadesplugin.CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256);
+            // yield oHashedData.propset_DataEncoding(cadesplugin.CADESCOM_BASE64_TO_BINARY);
+            console.log(base64data);
+            yield oHashedData.Hash(base64data);
 
 
+            let hashedVal = yield oHashedData.Value;
+
+            let oSignedData = yield cadesplugin.CreateObjectAsync('CAdESCOM.CadesSignedData');
+
+            let sSignedMessage = yield oSignedData.SignHash(oHashedData, oSigner, cadesplugin.CADESCOM_CADES_BES);
+
+
+
+
+            // проверка подписи
+            let oSignedData2 = yield cadesplugin.CreateObjectAsync('CAdESCOM.CadesSignedData');
+
+
+            let oHashedData2 = yield cadesplugin.CreateObjectAsync('CAdESCOM.HashedData');
+            // Инициализируем объект заранее вычисленным хэш-значением
+            // Алгоритм хэширования нужно указать до того, как будет передано хэш-значение
+            yield oHashedData2.propset_Algorithm = cadesplugin.CADESCOM_HASH_ALGORITHM_CP_GOST_3411_2012_256;
+            yield oHashedData2.SetHashValue(hashedVal);
+
+            // Проверяем подпись
+            try {
+                yield oSignedData2.VerifyHash(oHashedData, sSignedMessage, cadesplugin.CADESCOM_CADES_BES);
+            } catch (err) {
+                alert(`Не получилось проверить созданную подпись: ${cadesplugin.getLastError(err)}`);
+                return false;
+            }
+
+            resolve(sSignedMessage);
+        } catch (err) {
+            reject(`Ошибка при создании подписи. Error:  ${cadesplugin.getLastError(err)}`);
+        }
+    }
+
+    
+    return new Promise((resolve, reject) => {
+        cadesplugin.async_spawn(fn, keyThumb, Base64data, resolve, reject)
+    })
+}
+
+
+
+export const getCert = (hash) => {
+    return new Promise(function (resolve, reject) {
+        if (!hash) {
+            reject('Хэш не указан');
+            return;
+        }
+
+        getCertsList()
+            .then(list => {
+                let foundCert;
+
+                list.some(function (cert) {
+                    if (hash === cert.thumbprint) {
+                        foundCert = cert;
+                        return true;
+                    }
+                });
+
+                if (foundCert) {
+                    resolve(foundCert);
+                } else {
+                    reject(`Сертификат с хэшем: "${hash}" не найден`);
+                }
+            }, reject);
+    });
+}
 
 
 

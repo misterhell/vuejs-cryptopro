@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     // CAPICOM_STORE_LOCATION enumeration
     StoreLocation: {
         CAPICOM_MEMORY_STORE: 0,

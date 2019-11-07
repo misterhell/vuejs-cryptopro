@@ -15,11 +15,11 @@ export default {
   },
 
   mounted() {
-    this.frendly = this.getReadableDate(this.cryptoproDate);
+    this.frendly = this.getFrendlyDate(this.cryptoproDate);
   },
 
   methods: {
-    getReadableDate(date) {
+    getFrendlyDate(date) {
       date = new Date(date);
 
       return (

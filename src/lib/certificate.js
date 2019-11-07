@@ -1,3 +1,6 @@
+import cryptoCommon from './common'
+
+
 export default class Certificate {
     constructor (item) {
         this._cert = item._cert;
@@ -8,13 +11,31 @@ export default class Certificate {
         this.validTo = item.validTo;
     }
 
+    getCertInfo(tags, propName) {
+        let cert = this._cert;
+    
+        return new Promise(function (resolve, reject) {
+            eval(cryptoCommon.generateAsyncFn(function getCertInfo() {
+                let propInfo;
+    
+                try {
+                    propInfo = 'yield' + cert[propName];
+                } catch (err) {
+                    reject('Ошибка при извлечении данных из сертификата: ', err.message);
+                    return;
+                }
+    
+                resolve(cryptoCommon.parseCertInfo(tags, propInfo));
+            }));
+        });
+    }
 
     isValid () {
-        var cert = this._cert;
+        let cert = this._cert;
     
         return new Promise(function (resolve, reject) {
             eval(cryptoCommon.generateAsyncFn(function isValid() {
-                var result;
+                let result;
     
                 try {
                     result = 'yield' + cert.IsValid();
@@ -27,17 +48,17 @@ export default class Certificate {
                 resolve(result);
             }));
         });
-    };
+    }
     
     /**
      * Достает указанное свойство у сертификата
      * */
     getProp (propName) {
-        var cert = this._cert;
+        let cert = this._cert;
     
         return new Promise(function (resolve, reject) {
             eval(cryptoCommon.generateAsyncFn(function getProp() {
-                var result;
+                let result;
     
                 try {
                     result = 'yield' + cert[propName];
@@ -49,17 +70,17 @@ export default class Certificate {
                 resolve(result);
             }));
         });
-    };
+    }
     
     /**
      * Экспорт base64 представления сертификата пользователя
      * */
     exportBase64 () {
-        var cert = this._cert;
+        let cert = this._cert;
     
         return new Promise(function (resolve, reject) {
             eval(cryptoCommon.generateAsyncFn(function exportBase64() {
-                var base64;
+                let base64;
     
                 try {
                     base64 = 'yield' + cert.Export(0);
@@ -71,17 +92,19 @@ export default class Certificate {
                 resolve(base64);
             }));
         });
-    };
+    }
+
+
     
     /**
      * Возвращает информацию об алгоритме
      * */
     getAlgorithm () {
-        var cert = this._cert;
+        let cert = this._cert;
     
         return new Promise(function (resolve, reject) {
             eval(cryptoCommon.generateAsyncFn(function getAlgorithm() {
-                var result = {},
+                let result = {},
                     algorithm;
     
                 try {
@@ -98,21 +121,21 @@ export default class Certificate {
                 resolve(result);
             }));
         });
-    };
+    }
     
     /**
      * Разбирает SubjectName сертификата по тэгам
      * */
     getOwnerInfo () {
-        return getCertInfo.call(this, cryptoCommon.subjectNameTagsTranslations, 'SubjectName');
-    };
+        return this.getCertInfo(cryptoCommon.subjectNameTagsTranslations, 'SubjectName');
+    }
     
     /**
      * Разбирает IssuerName сертификата по тэгам
      * */
     getIssuerInfo () {
-        return getCertInfo.call(this, cryptoCommon.issuerNameTagsTranslations, 'IssuerName');
-    };
+        return this.getCertInfo(cryptoCommon.issuerNameTagsTranslations, 'IssuerName');
+    }
     
     /**
      * Получение OID сертификата
@@ -120,11 +143,11 @@ export default class Certificate {
      * @returns {Array} Возвращает массив OID (улучшенного ключа)
      * */
     getExtendedKeyUsage () {
-        var cert = this._cert;
+        let cert = this._cert;
     
         return new Promise(function (resolve, reject) {
             eval(cryptoCommon.generateAsyncFn(function getExtendedKeyUsage() {
-                var OIDS = [],
+                let OIDS = [],
                     count,
                     item;
     

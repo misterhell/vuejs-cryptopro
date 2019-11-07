@@ -2,7 +2,7 @@
   <div>
     <ul>
       <li v-for="route in routes" :key="route.path">
-        <router-link :to="route.path">{{ route.name }}</router-link>
+        <router-link v-if="route.name != 'err'" :to="route.path">{{ route.name }}</router-link>
       </li>
     </ul>
   </div>

@@ -1,7 +1,7 @@
 import bowser from 'bowser';
-var oids = require('./oids');
+import oids from './oids';
 
-var subjectNameTagsTranslations = [
+const subjectNameTagsTranslations = [
         {possibleNames: ['UnstructuredName'], translation: 'Неструктурированное имя'},
         {possibleNames: ['CN'], translation: 'Владелец'},
         {possibleNames: ['SN'], translation: 'Фамилия'},
@@ -38,12 +38,12 @@ var subjectNameTagsTranslations = [
     ];
 
 function generateAsyncFn(cb) {
-    var canAsync = cadesplugin.CreateObjectAsync;
-    var dynamicScriptName = cb.name || 'asyncFn';
+    let canAsync = cadesplugin.CreateObjectAsync;
+    let dynamicScriptName = cb.name || 'asyncFn';
 
     cb = String(cb);
 
-    var args = cb.match(/^function[\s\w]*?\((.*?)\)/);
+    let args = cb.match(/^function[\s\w]*?\((.*?)\)/);
 
     args = (args && args[1]) || '';
 
@@ -81,9 +81,11 @@ function parseCertInfo(tags, infoString) {
      INN=007811514257, OGRN=1127847087884, SNILS=11617693460
 
      * */
-    var result = infoString.match(/([а-яА-Яa-zA-Z0-9\.]+)=(?:("[^"]+?")|(.+?))(?:,|$)/g);
+    let result = infoString.match(/([а-яА-Яa-zA-Z0-9\.]+)=(?:("[^"]+?")|(.+?))(?:,|$)/g);
 
     if (result) {
+        
+
         result = result.map(function (group) {
             /**
              * Пример входной строки:
@@ -92,8 +94,9 @@ function parseCertInfo(tags, infoString) {
              UnstructuredName="INN=7811514257/KPP=781101001/OGRN=1127847087884",
 
              * */
-            var parts = group.match(/^([а-яА-Яa-zA-Z0-9\.]+)=(.+?),?$/),
-                title = parts && parts[1],
+            let parts = group.match(/^([а-яА-Яa-zA-Z0-9\.]+)=(.+?),?$/),
+                key = parts && parts[1],
+                title = key,
                 descr = parts && parts[2],
                 translated = false,
                 oidTitle;
@@ -116,22 +119,23 @@ function parseCertInfo(tags, infoString) {
             descr = descr.replace(/"{2}/g, '"');
 
             tags.some(function (tag) {
+
                 return tag.possibleNames.some(function (possible) {
-                    var match = possible === title;
+                    let match = possible === title;
 
                     if (match) {
                         title = tag.translation;
                         translated = true;
                     }
-
                     return match;
                 });
             });
 
             return {
-                title: title,
-                descr: descr,
-                translated: translated
+                title,
+                descr,
+                translated,
+                key
             };
         });
     }
@@ -188,7 +192,7 @@ function prepareCertsInfo(items) {
  * Возвращает расшифрованные ОИД'ы
  * */
 function getDecodedExtendedKeyUsage() {
-    var that = this;
+    let that = this;
 
     return new Promise(function (resolve) {
         that.getExtendedKeyUsage().then(function (certOids) {
@@ -217,11 +221,11 @@ function getDecodedExtendedKeyUsage() {
  * @returns {Promise} с отложенным результатом типа {Boolean}
  * */
 function hasExtendedKeyUsage(oids) {
-    var that = this;
+    let that = this;
 
     return new Promise(function (resolve) {
         that.getExtendedKeyUsage().then(function (certOids) {
-            var result;
+            let result;
 
             if (Array.isArray(oids)) {
                 result = oids.every(function (oidToCheck) {
@@ -244,7 +248,7 @@ function hasExtendedKeyUsage(oids) {
  * Выводит информацию о системе пользователя
  * */
 function getEnvInfo() {
-    var parsed = bowser._detect(navigator.userAgent),
+    let parsed = bowser._detect(navigator.userAgent),
         info = {
             browserName: parsed.name,
             browserVersion: parsed.version
